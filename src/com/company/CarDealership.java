@@ -1,6 +1,10 @@
 package com.company;
 
+import java.util.concurrent.locks.*;
+
 public class CarDealership {
+    Lock lock = new ReentrantLock();
+    Condition condition;
     private int carsEnable = 0;
     private int carsHaveBought = 0;
     private final int CARS_TO_SALE = 10;
@@ -10,34 +14,39 @@ public class CarDealership {
     }
 
     public synchronized void get() {
-        System.out.println(Thread.currentThread().getName() + " зашел в автосалон");
-        while (carsEnable < 1) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        try {
+            lock.lock();
+            System.out.println(Thread.currentThread().getName() + " зашел в автосалон");
+            if (carsEnable == 0) {
+                System.out.println("Машин нет");
             }
+            while (carsEnable == 0) {
+                condition.await();
+            }
+            carsHaveBought++;
+            carsEnable--;
+            System.out.println(Thread.currentThread().getName() + " купил 1 автомобиль");
+            System.out.println("Машин продано - " + carsHaveBought);
+            System.out.println("Машин на складе - " + carsEnable);
+        } catch (Exception e) {
+            e.getMessage();
+        } finally {
+            lock.unlock();
         }
-        carsHaveBought++;
-        carsEnable--;
-        System.out.println(Thread.currentThread().getName() + " купил 1 автомобиль");
-        System.out.println("Машин продано - " + carsHaveBought);
-        System.out.println("Машин на складе - " + carsEnable);
-        notify();
     }
 
     public synchronized void put() {
-        while (carsEnable >= CARS_TO_SALE) {
-            try {
-                wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        try {
+            lock.lock();
+            carsEnable++;
+            System.out.println(Thread.currentThread().getName() + " выпустил 1 автомобиль");
+            System.out.println("Машин на складе - " + carsEnable);
+            condition.signal();
+        } catch (Exception e) {
+            e.getMessage();
+        } finally {
+            lock.unlock();
         }
-        carsEnable++;
-        System.out.println(Thread.currentThread().getName() + " выпустил 1 автомобиль");
-        System.out.println("Машин на складе - " + carsEnable);
-        notify();
     }
 
     public int getCARS_TO_SALE() {
